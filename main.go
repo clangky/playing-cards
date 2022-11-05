@@ -22,7 +22,7 @@ func init() {
 
 func main() {
 	http.HandleFunc("/", foo)
-	http.Handle("/res/", http.StripPrefix("/res", http.FileServer(http.Dir("./assets/SVG"))))
+	http.Handle("/res/", http.StripPrefix("/res", http.FileServer(http.Dir("./assets"))))
 	http.ListenAndServe(":8080", nil)
 }
 
