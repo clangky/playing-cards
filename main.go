@@ -29,6 +29,7 @@ func main() {
 func foo(w http.ResponseWriter, req *http.Request) {
 	// w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// io.WriteString(w, hand())
+	color := false
 	d := newDeck()
 	d = d.shuffle()
 	d, h1 := d.deal(5)
@@ -43,9 +44,16 @@ func foo(w http.ResponseWriter, req *http.Request) {
 			Hand: h2,
 		},
 	} 
-	err := tpl.ExecuteTemplate(w, "something.gohtml", p)
-	if err != nil {
-		log.Fatalln("error executing template", err)
+	if color {
+		err := tpl.ExecuteTemplate(w, "color.gohtml", p)
+		if err != nil {
+			log.Fatalln("error executing template", err)
+		}
+	} else {
+		err := tpl.ExecuteTemplate(w, "bw.gohtml", p)
+		if err != nil {
+			log.Fatalln("error executing template", err)
+		}
 	}
 }
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+
+{{range .}}
+    <h2>{{.Name}}</h2>
+    {{range .Hand}}
+        <img src="/res/Color/{{.}}.svg">
+    {{end}}
+{{end}}
+
+</body>
+</html>
