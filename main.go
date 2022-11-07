@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	// "io"
 	"log"
@@ -9,7 +10,7 @@ import (
 
 type player struct {
 	Name string
-    Hand deck
+	Hand []string
 }
 
 type players []player
@@ -34,16 +35,17 @@ func foo(w http.ResponseWriter, req *http.Request) {
 	d = d.shuffle()
 	d, h1 := d.deal(5)
 	_, h2 := d.deal(5)
+	fmt.Println(h1)
 	p := players{
 		player{
-			Name: "bob", 
-			Hand: h1,
-			},
-		player{
-			Name: "eric", 
-			Hand: h2,
+			Name: "bob",
+			Hand: h1.toStringSlice(),
 		},
-	} 
+		player{
+			Name: "eric",
+			Hand: h2.toStringSlice(),
+		},
+	}
 	if color {
 		err := tpl.ExecuteTemplate(w, "color.gohtml", p)
 		if err != nil {
@@ -56,7 +58,6 @@ func foo(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 }
-
 
 // func hand() deck {
 
