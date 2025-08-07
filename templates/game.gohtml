@@ -41,7 +41,8 @@
     </div>
 </div>
 <script>
-var ws = new WebSocket(`ws://${location.host}/ws`);
+var protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
+var ws = new WebSocket(`${protocol}://${location.host}/ws`);
 ws.onmessage = function(evt) {
     var msg = JSON.parse(evt.data);
     if (msg.type !== 'state') return;
@@ -53,6 +54,12 @@ ws.onmessage = function(evt) {
     document.getElementById('board').innerHTML = s.board.map(renderCard).join('');
     document.getElementById('player-hand').innerHTML = s.playerHand.map(renderCard).join('');
     document.getElementById('npc-hand').innerHTML = s.npcHand.map(renderCard).join('');
+};
+ws.onerror = function() {
+    document.getElementById('message').innerText = 'WebSocket error';
+};
+ws.onclose = function() {
+    document.getElementById('message').innerText = 'WebSocket connection closed';
 };
 function renderCard(c) {
     return `<img class="card" src="/res/Color/${c}.svg">`;
