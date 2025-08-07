@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -34,6 +35,7 @@ type State struct {
 	PlayerHand  []string `json:"playerHand"`
 	NPCHand     []string `json:"npcHand"`
 	Message     string   `json:"message"`
+	Winner      string   `json:"winner"`
 }
 
 func NewGame() *Game {
@@ -118,7 +120,7 @@ func (g *Game) PlayerFold() string {
 	g.players[0].InHand = false
 	g.players[1].Chips += g.pot
 	g.stage = 4
-	return "You folded."
+	return "You folded. Dali NPC wins the pot!"
 }
 
 func (g *Game) PlayerCall() string {
@@ -141,13 +143,19 @@ func (g *Game) NPCAct() string {
 	if g.stage < 4 {
 		g.nextStage()
 	}
+	if g.stage == 4 {
+		w := g.players[g.winner()].Name
+		return fmt.Sprintf("%s wins the pot!", w)
+	}
 	return quips[rand.Intn(len(quips))]
 }
 
 func (g *Game) State(revealNPC bool, msg string) State {
 	npcHand := []string{}
+	winner := ""
 	if revealNPC {
 		npcHand = g.players[1].Hand.toStringSlice()
+		winner = g.players[g.winner()].Name
 	}
 	return State{
 		PlayerChips: g.players[0].Chips,
@@ -157,6 +165,7 @@ func (g *Game) State(revealNPC bool, msg string) State {
 		PlayerHand:  g.players[0].Hand.toStringSlice(),
 		NPCHand:     npcHand,
 		Message:     msg,
+		Winner:      winner,
 	}
 }
 
