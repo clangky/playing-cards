@@ -27,8 +27,11 @@ func newDeck() deck {
 }
 
 func (d deck) deal(handSize int) (deck, deck) {
-	var hand deck
-	for i := handSize; i > 0; i-- {
+	if handSize > len(d) {
+		handSize = len(d)
+	}
+	hand := make(deck, 0, handSize)
+	for i := 0; i < handSize; i++ {
 		hand = append(hand, d[0]) // one from the top
 		d = d[1:]
 	}
@@ -37,9 +40,9 @@ func (d deck) deal(handSize int) (deck, deck) {
 
 func (d deck) toStringSlice() []string {
 	s := make([]string, len(d))
-    for i := range d {
-        s[i] = d[i].value + d[i].suit
-    }
+	for i := range d {
+		s[i] = d[i].value + d[i].suit
+	}
 	return s
 }
 
