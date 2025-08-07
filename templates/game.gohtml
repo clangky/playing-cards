@@ -5,7 +5,7 @@
     <title>Dali Hold'em</title>
     <style>
         body {
-            background-image: url('https://upload.wikimedia.org/wikipedia/en/d/dd/The_Persistence_of_Memory.jpg');
+            background-image: url('/res/dali_table.svg');
             background-size: cover;
             font-family: sans-serif;
             color: #fff;
@@ -17,8 +17,28 @@
             width: 800px;
             border-radius: 20px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        img.card { width: 80px; }
+        img.card {
+            width: 100px;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #fff;
+            animation: deal 0.5s ease-out;
+        }
+        @keyframes deal {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .chip {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #f00 0%, #900 100%);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -54,6 +74,9 @@ ws.onmessage = function(evt) {
     document.getElementById('board').innerHTML = s.board.map(renderCard).join('');
     document.getElementById('player-hand').innerHTML = s.playerHand.map(renderCard).join('');
     document.getElementById('npc-hand').innerHTML = s.npcHand.map(renderCard).join('');
+    if (s.winner) {
+        celebrate(s.winner);
+    }
 };
 ws.onerror = function() {
     document.getElementById('message').innerText = 'WebSocket error';
@@ -66,6 +89,25 @@ function renderCard(c) {
 }
 function sendAction(a) {
     ws.send(JSON.stringify({action:a}));
+}
+
+function celebrate(winner) {
+    var table = document.getElementById('table');
+    var potEl = document.getElementById('pot');
+    var destEl = winner === 'You' ? document.getElementById('player-chips') : document.getElementById('npc-chips');
+    var tableRect = table.getBoundingClientRect();
+    var potRect = potEl.getBoundingClientRect();
+    var destRect = destEl.getBoundingClientRect();
+    var chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.style.left = (potRect.left - tableRect.left) + 'px';
+    chip.style.top = (potRect.top - tableRect.top) + 'px';
+    table.appendChild(chip);
+    chip.animate([
+        { left: chip.style.left, top: chip.style.top },
+        { left: (destRect.left - tableRect.left) + 'px', top: (destRect.top - tableRect.top) + 'px' }
+    ], { duration: 1000, fill: 'forwards' });
+    setTimeout(function(){ chip.remove(); }, 1000);
 }
 </script>
 </body>
