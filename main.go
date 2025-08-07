@@ -31,6 +31,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 type wsMessage struct {
 	Action string `json:"action"`
+	Amount int    `json:"amount"`
 }
 
 type stateMessage struct {
@@ -61,6 +62,8 @@ func serveWS(w http.ResponseWriter, r *http.Request) {
 			info = game.PlayerFold()
 		case "call":
 			info = game.PlayerCall()
+		case "bet":
+			info = game.PlayerBet(msg.Amount)
 		default:
 			info = "Unknown action"
 		}

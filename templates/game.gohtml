@@ -4,21 +4,32 @@
     <meta charset="UTF-8">
     <title>Dali Hold'em</title>
     <style>
-        body {
-            background-image: url('/res/dali_table.svg');
-            background-size: cover;
+        html, body {
+            margin: 0;
+            overflow: hidden;
             font-family: sans-serif;
             color: #fff;
         }
+        #scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
         #table {
-            background: rgba(0,0,0,0.6);
-            margin: 40px auto;
+            margin: 20px auto;
             padding: 20px;
-            width: 800px;
-            border-radius: 20px;
+            width: 1000px;
             text-align: center;
             position: relative;
-            overflow: hidden;
+        }
+        #player-hand {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
         }
         img.card {
             width: 100px;
@@ -28,7 +39,7 @@
             animation: deal 0.5s ease-out;
         }
         @keyframes deal {
-            from { transform: translateY(-50px); opacity: 0; }
+            from { transform: translateY(50px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
         .chip {
@@ -40,8 +51,10 @@
             pointer-events: none;
         }
     </style>
+    <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
 </head>
 <body>
+<canvas id="scene"></canvas>
 <div id="table">
     <h1>Dali Hold'em</h1>
     <div id="message"></div>
@@ -56,6 +69,8 @@
         <div id="player-hand"></div>
     </div>
     <div id="actions">
+        <input id="bet-amount" type="number" value="100" min="1" style="width:80px;">
+        <button onclick="sendBet()">Bet</button>
         <button onclick="sendAction('call')">Call/Check</button>
         <button onclick="sendAction('fold')">Fold</button>
     </div>
@@ -63,10 +78,18 @@
 <script>
 var protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
 var ws = new WebSocket(`${protocol}://${location.host}/ws`);
+var lastPot = 0, lastPlayerChips = 0, lastNPCChips = 0;
 ws.onmessage = function(evt) {
     var msg = JSON.parse(evt.data);
     if (msg.type !== 'state') return;
     var s = msg.payload;
+    if (lastPot && s.pot > lastPot) {
+        if (s.playerChips < lastPlayerChips) animateChips('player-chips', 'pot');
+        if (s.npcChips < lastNPCChips) animateChips('npc-chips', 'pot');
+    }
+    lastPot = s.pot;
+    lastPlayerChips = s.playerChips;
+    lastNPCChips = s.npcChips;
     document.getElementById('pot').innerText = s.pot;
     document.getElementById('player-chips').innerText = s.playerChips;
     document.getElementById('npc-chips').innerText = s.npcChips;
@@ -90,25 +113,59 @@ function renderCard(c) {
 function sendAction(a) {
     ws.send(JSON.stringify({action:a}));
 }
-
-function celebrate(winner) {
+function sendBet() {
+    var amt = parseInt(document.getElementById('bet-amount').value, 10);
+    ws.send(JSON.stringify({action:'bet', amount: amt}));
+}
+function animateChips(fromId, toId) {
     var table = document.getElementById('table');
-    var potEl = document.getElementById('pot');
-    var destEl = winner === 'You' ? document.getElementById('player-chips') : document.getElementById('npc-chips');
+    var fromEl = document.getElementById(fromId);
+    var toEl = document.getElementById(toId);
+    if (!fromEl || !toEl) return;
     var tableRect = table.getBoundingClientRect();
-    var potRect = potEl.getBoundingClientRect();
-    var destRect = destEl.getBoundingClientRect();
+    var fromRect = fromEl.getBoundingClientRect();
+    var toRect = toEl.getBoundingClientRect();
     var chip = document.createElement('div');
     chip.className = 'chip';
-    chip.style.left = (potRect.left - tableRect.left) + 'px';
-    chip.style.top = (potRect.top - tableRect.top) + 'px';
+    chip.style.left = (fromRect.left - tableRect.left) + 'px';
+    chip.style.top = (fromRect.top - tableRect.top) + 'px';
     table.appendChild(chip);
     chip.animate([
         { left: chip.style.left, top: chip.style.top },
-        { left: (destRect.left - tableRect.left) + 'px', top: (destRect.top - tableRect.top) + 'px' }
+        { left: (toRect.left - tableRect.left) + 'px', top: (toRect.top - tableRect.top) + 'px' }
     ], { duration: 1000, fill: 'forwards' });
     setTimeout(function(){ chip.remove(); }, 1000);
 }
+function celebrate(winner) {
+    var dest = winner === 'You' ? 'player-chips' : 'npc-chips';
+    animateChips('pot', dest);
+}
+</script>
+<script>
+const scene3d = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('scene'), alpha: true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+const light = new THREE.AmbientLight(0xffffff);
+scene3d.add(light);
+const tableGeo = new THREE.BoxGeometry(4,0.2,2);
+const tableMat = new THREE.MeshStandardMaterial({color:0x654321});
+const tableMesh = new THREE.Mesh(tableGeo, tableMat);
+tableMesh.position.y = -1;
+scene3d.add(tableMesh);
+const loader = new THREE.TextureLoader();
+loader.load('/res/room_reference.png', function(tex){
+    const spriteMat = new THREE.SpriteMaterial({map: tex});
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.set(0,1,-1);
+    scene3d.add(sprite);
+});
+camera.position.z = 5;
+function animateScene(){
+    requestAnimationFrame(animateScene);
+    renderer.render(scene3d, camera);
+}
+animateScene();
 </script>
 </body>
 </html>
