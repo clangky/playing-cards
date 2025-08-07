@@ -26,16 +26,16 @@ func newDeck() deck {
 	return cards
 }
 
-func (d deck) deal(handSize int) (deck, deck) {
-	if handSize > len(d) {
-		handSize = len(d)
+func (d *deck) deal(handSize int) deck {
+	if handSize > len(*d) {
+		handSize = len(*d)
 	}
 	hand := make(deck, 0, handSize)
 	for i := 0; i < handSize; i++ {
-		hand = append(hand, d[0]) // one from the top
-		d = d[1:]
+		hand = append(hand, (*d)[0]) // one from the top
+		*d = (*d)[1:]
 	}
-	return d, hand
+	return hand
 }
 
 func (d deck) toStringSlice() []string {

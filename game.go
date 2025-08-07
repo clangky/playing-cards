@@ -52,10 +52,9 @@ func NewGame() *Game {
 }
 
 func (g *Game) deal() {
-	var h deck
-	g.deck, h = g.deck.deal(2)
+	h := g.deck.deal(2)
 	g.players[0].Hand = h
-	g.deck, h = g.deck.deal(2)
+	h = g.deck.deal(2)
 	g.players[1].Hand = h
 	g.players[0].Chips -= smallBlind
 	g.players[1].Chips -= bigBlind
@@ -65,12 +64,10 @@ func (g *Game) deal() {
 func (g *Game) nextStage() {
 	switch g.stage {
 	case 0:
-		var h deck
-		g.deck, h = g.deck.deal(3)
+		h := g.deck.deal(3)
 		g.board = append(g.board, h...)
 	case 1, 2:
-		var h deck
-		g.deck, h = g.deck.deal(1)
+		h := g.deck.deal(1)
 		g.board = append(g.board, h...)
 	case 3:
 		winner := g.winner()
