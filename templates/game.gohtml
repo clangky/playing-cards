@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dali Hold'em</title>
+    <style>
+        body {
+            background-image: url('https://upload.wikimedia.org/wikipedia/en/d/dd/The_Persistence_of_Memory.jpg');
+            background-size: cover;
+            font-family: sans-serif;
+            color: #fff;
+        }
+        #table {
+            background: rgba(0,0,0,0.6);
+            margin: 40px auto;
+            padding: 20px;
+            width: 800px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        img.card { width: 80px; }
+    </style>
+</head>
+<body>
+<div id="table">
+    <h1>Dali Hold'em</h1>
+    <div id="message"></div>
+    <h3>Pot: <span id="pot"></span></h3>
+    <div id="board"></div>
+    <div id="npc">
+        <h2>Dali NPC - Chips: <span id="npc-chips"></span></h2>
+        <div id="npc-hand"></div>
+    </div>
+    <div id="player">
+        <h2>You - Chips: <span id="player-chips"></span></h2>
+        <div id="player-hand"></div>
+    </div>
+    <div id="actions">
+        <button onclick="sendAction('call')">Call/Check</button>
+        <button onclick="sendAction('fold')">Fold</button>
+    </div>
+</div>
+<script>
+var ws = new WebSocket(`ws://${location.host}/ws`);
+ws.onmessage = function(evt) {
+    var msg = JSON.parse(evt.data);
+    if (msg.type !== 'state') return;
+    var s = msg.payload;
+    document.getElementById('pot').innerText = s.pot;
+    document.getElementById('player-chips').innerText = s.playerChips;
+    document.getElementById('npc-chips').innerText = s.npcChips;
+    document.getElementById('message').innerText = s.message;
+    document.getElementById('board').innerHTML = s.board.map(renderCard).join('');
+    document.getElementById('player-hand').innerHTML = s.playerHand.map(renderCard).join('');
+    document.getElementById('npc-hand').innerHTML = s.npcHand.map(renderCard).join('');
+};
+function renderCard(c) {
+    return `<img class="card" src="/res/Color/${c}.svg">`;
+}
+function sendAction(a) {
+    ws.send(JSON.stringify({action:a}));
+}
+</script>
+</body>
+</html>
