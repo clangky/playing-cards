@@ -132,6 +132,23 @@ func (g *Game) PlayerCall() string {
 	return "You call."
 }
 
+func (g *Game) PlayerBet(amount int) string {
+	if amount <= 0 || amount > g.players[0].Chips {
+		return "Invalid bet amount."
+	}
+	g.players[0].Chips -= amount
+	g.pot += amount
+	if g.players[1].Chips >= amount {
+		g.players[1].Chips -= amount
+		g.pot += amount
+		return fmt.Sprintf("You bet %d. Dali NPC calls.", amount)
+	}
+	g.players[1].InHand = false
+	g.players[0].Chips += g.pot
+	g.stage = 4
+	return fmt.Sprintf("You bet %d. Dali NPC folds.", amount)
+}
+
 func (g *Game) NPCAct() string {
 	rand.Seed(time.Now().UnixNano())
 	quips := []string{
