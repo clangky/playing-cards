@@ -9,6 +9,7 @@
             overflow: hidden;
             font-family: sans-serif;
             color: #fff;
+            background: radial-gradient(circle at center, #2d553d 0%, #0b3d20 100%);
         }
         #scene {
             position: fixed;
@@ -16,7 +17,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
+            z-index: 0;
         }
         #table {
             margin: 20px auto;
@@ -24,18 +25,47 @@
             width: 1000px;
             text-align: center;
             position: relative;
+            z-index: 1;
+        }
+        #npc {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 1;
         }
         #player-hand {
             position: fixed;
-            bottom: 20px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
+            z-index: 1;
+        }
+        #board {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1;
+        }
+        #npc-hand {
+            position: fixed;
+            top: calc(50% - 120px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1;
         }
         img.card {
             width: 100px;
             border: 2px solid #fff;
             border-radius: 5px;
             box-shadow: 0 0 10px #fff;
+            opacity: 0.95;
             animation: deal 0.5s ease-out;
         }
         @keyframes deal {
@@ -49,6 +79,55 @@
             border-radius: 50%;
             position: absolute;
             pointer-events: none;
+        }
+        #actions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #actions input, #actions button {
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: none;
+        }
+        #actions button {
+            background: #35654d;
+            color: #fff;
+            cursor: pointer;
+        }
+        #actions button:hover {
+            background: #2b4c3b;
+        }
+        #player-chip-display {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            margin-right: 10px;
+            position: relative;
+        }
+        #player-chip-display::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #f00 0%, #900 100%);
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        #player-chip-display.updated {
+            animation: pulse 0.5s ease;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
     </style>
     <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
@@ -65,11 +144,11 @@
         <div id="npc-hand"></div>
     </div>
     <div id="player">
-        <h2>You - Chips: <span id="player-chips"></span></h2>
         <div id="player-hand"></div>
     </div>
     <div id="actions">
-        <input id="bet-amount" type="number" value="100" min="1" style="width:80px;">
+        <div id="player-chip-display">You - Chips: <span id="player-chips"></span></div>
+        <input id="bet-amount" type="number" value="100" min="1">
         <button onclick="sendBet()">Bet</button>
         <button onclick="sendAction('call')">Call/Check</button>
         <button onclick="sendAction('fold')">Fold</button>
@@ -87,12 +166,14 @@ ws.onmessage = function(evt) {
         if (s.playerChips < lastPlayerChips) animateChips('player-chips', 'pot');
         if (s.npcChips < lastNPCChips) animateChips('npc-chips', 'pot');
     }
-    lastPot = s.pot;
-    lastPlayerChips = s.playerChips;
-    lastNPCChips = s.npcChips;
     document.getElementById('pot').innerText = s.pot;
     document.getElementById('player-chips').innerText = s.playerChips;
     document.getElementById('npc-chips').innerText = s.npcChips;
+    if (s.playerChips !== lastPlayerChips) {
+        var chipDisplay = document.getElementById('player-chip-display');
+        chipDisplay.classList.add('updated');
+        setTimeout(function(){ chipDisplay.classList.remove('updated'); }, 500);
+    }
     document.getElementById('message').innerText = s.message;
     document.getElementById('board').innerHTML = s.board.map(renderCard).join('');
     document.getElementById('player-hand').innerHTML = s.playerHand.map(renderCard).join('');
@@ -100,6 +181,9 @@ ws.onmessage = function(evt) {
     if (s.winner) {
         celebrate(s.winner);
     }
+    lastPot = s.pot;
+    lastPlayerChips = s.playerChips;
+    lastNPCChips = s.npcChips;
 };
 ws.onerror = function() {
     document.getElementById('message').innerText = 'WebSocket error';
@@ -148,16 +232,24 @@ const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('scene
 renderer.setSize(window.innerWidth, window.innerHeight);
 const light = new THREE.AmbientLight(0xffffff);
 scene3d.add(light);
-const tableGeo = new THREE.BoxGeometry(4,0.2,2);
-const tableMat = new THREE.MeshStandardMaterial({color:0x654321});
-const tableMesh = new THREE.Mesh(tableGeo, tableMat);
-tableMesh.position.y = -1;
-scene3d.add(tableMesh);
+const tableGroup = new THREE.Group();
+const feltGeo = new THREE.CylinderGeometry(3,3,0.1,32);
+const feltMat = new THREE.MeshStandardMaterial({color:0x35654d});
+const felt = new THREE.Mesh(feltGeo, feltMat);
+tableGroup.add(felt);
+const railGeo = new THREE.CylinderGeometry(3.2,3.2,0.15,32);
+const railMat = new THREE.MeshStandardMaterial({color:0x7b5e2a});
+const rail = new THREE.Mesh(railGeo, railMat);
+rail.position.y = -0.05;
+tableGroup.add(rail);
+tableGroup.position.y = -1;
+scene3d.add(tableGroup);
 const loader = new THREE.TextureLoader();
-loader.load('/res/room_reference.png', function(tex){
+loader.load('/res/daliCards.webp', function(tex){
     const spriteMat = new THREE.SpriteMaterial({map: tex});
     const sprite = new THREE.Sprite(spriteMat);
-    sprite.position.set(0,1,-1);
+    sprite.scale.set(1.5,1.5,1.5);
+    sprite.position.set(0,0,-2);
     scene3d.add(sprite);
 });
 camera.position.z = 5;
