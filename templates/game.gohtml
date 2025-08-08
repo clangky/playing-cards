@@ -26,18 +26,47 @@
             text-align: center;
             position: relative;
             z-index: 1;
+
+        }
+        #npc {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 1;
         }
         #player-hand {
             position: fixed;
             bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
+            z-index: 1;
+        }
+        #board {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1;
+        }
+        #npc-hand {
+            position: fixed;
+            top: calc(50% - 120px);
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1;
         }
         img.card {
             width: 100px;
             border: 2px solid #fff;
             border-radius: 5px;
             box-shadow: 0 0 10px #fff;
+            opacity: 0.95;
             animation: deal 0.5s ease-out;
         }
         @keyframes deal {
@@ -78,6 +107,30 @@
         #actions button:hover {
             background: #2b4c3b;
         }
+
+        #player-chip-display {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            margin-right: 10px;
+            position: relative;
+        }
+        #player-chip-display::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #f00 0%, #900 100%);
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        #player-chip-display.updated {
+            animation: pulse 0.5s ease;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
     </style>
     <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
 </head>
@@ -93,10 +146,10 @@
         <div id="npc-hand"></div>
     </div>
     <div id="player">
-        <h2>You - Chips: <span id="player-chips"></span></h2>
         <div id="player-hand"></div>
     </div>
     <div id="actions">
+        <div id="player-chip-display">You - Chips: <span id="player-chips"></span></div>
         <input id="bet-amount" type="number" value="100" min="1">
         <button onclick="sendBet()">Bet</button>
         <button onclick="sendAction('call')">Call/Check</button>
@@ -115,12 +168,14 @@ ws.onmessage = function(evt) {
         if (s.playerChips < lastPlayerChips) animateChips('player-chips', 'pot');
         if (s.npcChips < lastNPCChips) animateChips('npc-chips', 'pot');
     }
-    lastPot = s.pot;
-    lastPlayerChips = s.playerChips;
-    lastNPCChips = s.npcChips;
     document.getElementById('pot').innerText = s.pot;
     document.getElementById('player-chips').innerText = s.playerChips;
     document.getElementById('npc-chips').innerText = s.npcChips;
+    if (s.playerChips !== lastPlayerChips) {
+        var chipDisplay = document.getElementById('player-chip-display');
+        chipDisplay.classList.add('updated');
+        setTimeout(function(){ chipDisplay.classList.remove('updated'); }, 500);
+    }
     document.getElementById('message').innerText = s.message;
     document.getElementById('board').innerHTML = s.board.map(renderCard).join('');
     document.getElementById('player-hand').innerHTML = s.playerHand.map(renderCard).join('');
@@ -128,6 +183,9 @@ ws.onmessage = function(evt) {
     if (s.winner) {
         celebrate(s.winner);
     }
+    lastPot = s.pot;
+    lastPlayerChips = s.playerChips;
+    lastNPCChips = s.npcChips;
 };
 ws.onerror = function() {
     document.getElementById('message').innerText = 'WebSocket error';
